@@ -1,1 +1,45 @@
 
+import xml.etree.ElementTree as ET
+from openpyxl import Workbook
+
+try:
+    # load the XML data from file
+    tree = ET.parse('xml.xml')
+    root = tree.getroot()
+
+    # create a new workbook and select the active worksheet
+    workbook = Workbook()
+    worksheet = workbook.active
+
+    # write the column headers to the first row
+    field_defs = root.find('Metadata/FieldDefinitions')
+    if field_defs is not None:
+        headers = [field_def.get('name') for field_def in field_defs.iter('FieldDefinition')]
+        worksheet.append(headers)
+
+    # loop through the records and write the Field values to the worksheet
+    for record in root.iter('Record'):
+        row_data = []
+        for field in record.iter('Field'):
+            
+            if field.find('ListValues/ListValue') is not None:
+                # append the ListValue text and the displayName attribute to the row data
+                list_value = field.find('ListValues/ListValue')
+                if field.get('id') in ['16758', '17245', '16156']:
+                    row_data.append(list_value.text)
+                else:
+                    row_data.append(list_value.text + f" ({list_value.get('displayName')})")
+            elif field.text is not None:
+                row_data.append(field.text)
+            else:
+                row_data.append("")  # add an empty string if the value is None
+        worksheet.append(row_data)
+
+    # save the workbook to a file
+    workbook.save('output.xlsx')
+except Exception as e:
+    print(f"Error: {e}")
+
+# print the root element if it was defined successfully
+if 'root' in locals():
+    print(f"Root element: {root}")
